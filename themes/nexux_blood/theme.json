@@ -1,0 +1,30 @@
+{
+  "name": "NEXUX Crimson Blood",
+  "widgets": "Fusion",
+  "qssFilePath": "themeStyle.css",
+  "colors": {
+    "Window": "#140608",
+    "WindowText": "#f1f5f9",
+    "Base": "#140608",
+    "AlternateBase": "#1c090c",
+    "ToolTipBase": "#1c090c",
+    "ToolTipText": "#ff2a55",
+    "Text": "#f8fafc",
+    "Button": "#1c090c",
+    "ButtonText": "#f8fafc",
+    "BrightText": "#ff2a55",
+    "Link": "#ff4d6d",
+    "Highlight": "#ff2a55",
+    "HighlightedText": "#ffffff",
+    "fadeColor": "#140608",
+    "fadeAmount": 0.5
+  },
+  "logColors": {
+    "Message": "#ff2a55",
+    "Launcher": "#ff4d6d",
+    "Debug": "#94a3b8",
+    "Warning": "#fbbf24",
+    "Error": "#f87171",
+    "Fatal": "#ef4444"
+  }
+}

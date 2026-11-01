@@ -30,6 +30,7 @@
 #include "ui/themes/CatPack.h"
 #include "ui/themes/CustomTheme.h"
 #include "ui/themes/DarkTheme.h"
+#include "ui/themes/NexuxTheme.h"
 #include "ui/themes/SystemTheme.h"
 
 #include "Application.h"
@@ -142,6 +143,8 @@ void ThemeManager::initializeIcons()
 void ThemeManager::initializeWidgets()
 {
     themeDebugLog() << "<> Initializing Widget Themes";
+    auto nexuxThemeId = addTheme(std::make_unique<NexuxTheme>());
+    themeDebugLog() << "Loading Built-in Theme:" << nexuxThemeId;
     themeDebugLog() << "Loading Built-in Theme:" << addTheme(std::make_unique<SystemTheme>(m_defaultStyle, m_defaultPalette, true));
     auto darkThemeId = addTheme(std::make_unique<DarkTheme>());
     themeDebugLog() << "Loading Built-in Theme:" << darkThemeId;

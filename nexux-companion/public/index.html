@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEXUX Launcher — 1-Click Mod Manager & Theme Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="nexux_neon">
+  <div class="cyber-grid-bg"></div>
+
+  <!-- Header -->
+  <header class="navbar">
+    <div class="logo-area">
+      <div class="logo-icon">
+        <svg viewBox="0 0 512 512" width="36" height="36">
+          <path d="M 256 36 L 440 100 L 440 280 C 440 380 350 450 256 480 C 162 450 72 380 72 280 L 72 100 Z" fill="#060b13" stroke="var(--primary)" stroke-width="12"/>
+          <path d="M 170 170 L 220 170 L 220 340 L 170 340 Z" fill="var(--primary)"/>
+          <path d="M 220 170 L 292 340 L 342 340 L 270 170 Z" fill="var(--primary)"/>
+          <path d="M 292 170 L 342 170 L 342 340 L 292 340 Z" fill="var(--primary)"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="brand-title">NEXUX <span>LAUNCHER</span></h1>
+        <p class="brand-sub">Next-Gen Cyber Minecraft Launcher • 1-Click Mod Downloader</p>
+      </div>
+    </div>
+
+    <!-- Theme Switcher -->
+    <div class="theme-bar">
+      <span class="theme-label">Active Theme:</span>
+      <div class="theme-pills">
+        <button class="pill active" data-theme-btn="nexux_neon">⚡ Cyber Neon</button>
+        <button class="pill" data-theme-btn="nexux_matrix">🌲 Matrix</button>
+        <button class="pill" data-theme-btn="nexux_blood">🩸 Crimson</button>
+        <button class="pill" data-theme-btn="nexux_violet">🔮 Synthwave</button>
+        <button class="pill" data-theme-btn="nexux_obsidian">🌑 Stealth</button>
+      </div>
+      <button id="btnApplyPrismTheme" class="btn-theme-export">🚀 Apply to Prism Launcher</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Top Action Bar -->
+    <div class="action-card">
+      <div class="instance-selector-area">
+        <label for="instanceSelect">🎯 Install Mods Directly Into:</label>
+        <select id="instanceSelect" class="cyber-select">
+          <option value="">Loading instances...</option>
+        </select>
+      </div>
+
+      <div class="server-badge">
+        <span class="pulse-dot"></span>
+        <span>Target Server: <strong>nexuxsmp.play.hosting</strong></span>
+      </div>
+    </div>
+
+    <!-- Search & Filter Controls -->
+    <section class="search-section">
+      <div class="search-row">
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Search 50,000+ Minecraft Mods (e.g. Sodium, Iris, JEI, JourneyMap, WorldEdit)..." autocomplete="off" />
+          <button id="btnSearch" class="btn-primary">Search Mods</button>
+        </div>
+
+        <div class="filter-controls">
+          <select id="versionFilter" class="cyber-select">
+            <option value="">All Game Versions</option>
+            <option value="1.21.4">Minecraft 1.21.4</option>
+            <option value="1.21.1" selected>Minecraft 1.21.1</option>
+            <option value="1.20.4">Minecraft 1.20.4</option>
+            <option value="1.20.1">Minecraft 1.20.1</option>
+            <option value="1.19.2">Minecraft 1.19.2</option>
+            <option value="1.16.5">Minecraft 1.16.5</option>
+          </select>
+
+          <select id="loaderFilter" class="cyber-select">
+            <option value="">All Mod Loaders</option>
+            <option value="fabric" selected>Fabric</option>
+            <option value="neoforge">NeoForge</option>
+            <option value="forge">Forge</option>
+            <option value="quilt">Quilt</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Quick Popular Mod Pills -->
+      <div class="popular-pills">
+        <span class="pills-title">Popular 1-Click:</span>
+        <button class="quick-pill" data-query="Sodium">⚡ Sodium (FPS)</button>
+        <button class="quick-pill" data-query="Iris Shaders">✨ Iris Shaders</button>
+        <button class="quick-pill" data-query="Lithium">⚙️ Lithium</button>
+        <button class="quick-pill" data-query="FerriteCore">🧠 FerriteCore</button>
+        <button class="quick-pill" data-query="Roughly Enough Items">📦 REI / JEI</button>
+        <button class="quick-pill" data-query="JourneyMap">🗺️ JourneyMap</button>
+        <button class="quick-pill" data-query="AppleSkin">🍎 AppleSkin</button>
+        <button class="quick-pill" data-query="Simple Voice Chat">🎙️ Voice Chat</button>
+      </div>
+    </section>
+
+    <!-- Mod Results Feed -->
+    <section class="results-section">
+      <div class="results-header">
+        <h2 id="resultsCount">Featured Mods</h2>
+        <span class="modrinth-badge">Powered by Modrinth API</span>
+      </div>
+
+      <div id="modsGrid" class="mods-grid">
+        <div class="loading-state">
+          <div class="cyber-spinner"></div>
+          <p>Connecting to Modrinth Mod Index...</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="cyber-toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -165,6 +165,7 @@ class MainWindow : public QMainWindow {
     void on_actionRenameInstance_triggered();
 
     void on_actionEditInstance_triggered();
+    void on_actionOneClickMods_triggered();
 
     void on_actionCreateInstanceShortcut_triggered();
 

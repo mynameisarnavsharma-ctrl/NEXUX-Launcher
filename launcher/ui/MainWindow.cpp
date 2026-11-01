@@ -1389,6 +1389,21 @@ void MainWindow::globalSettingsClosed()
     update();
 }
 
+void MainWindow::on_actionOneClickMods_triggered()
+{
+    if (!m_selectedInstance)
+        return;
+
+    if (m_selectedInstance->canEdit()) {
+        APPLICATION->showInstanceWindow(m_selectedInstance, "mods");
+    } else {
+        CustomMessageBox::selectable(this, tr("Instance not editable"),
+                                     tr("This instance is not editable. Check logs for details."),
+                                     QMessageBox::Critical)
+            ->show();
+    }
+}
+
 void MainWindow::on_actionEditInstance_triggered()
 {
     if (!m_selectedInstance)
@@ -1779,6 +1794,7 @@ void MainWindow::updateStatusCenter()
 void MainWindow::setInstanceActionsEnabled(bool enabled)
 {
     ui->actionEditInstance->setEnabled(enabled);
+    if (ui->actionOneClickMods) ui->actionOneClickMods->setEnabled(enabled);
     ui->actionChangeInstGroup->setEnabled(enabled);
     ui->actionViewSelectedInstFolder->setEnabled(enabled);
     ui->actionExportInstance->setEnabled(enabled);

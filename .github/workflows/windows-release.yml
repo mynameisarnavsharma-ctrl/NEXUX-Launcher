@@ -1,0 +1,100 @@
+name: NEXUX Launcher Windows Build & Release
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [ develop, main ]
+    tags: [ 'v*' ]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      build-type:
+        description: 'Type of build'
+        required: true
+        default: 'Release'
+        type: choice
+        options:
+          - Release
+          - Debug
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+jobs:
+  build-windows:
+    name: Build NEXUX Launcher (Windows x64)
+    runs-on: windows-2022
+
+    env:
+      BUILD_TYPE: ${{ inputs.build-type || 'Release' }}
+      CMAKE_PRESET: ci
+      ARTIFACT_NAME: NEXUX-Launcher-Windows-MSVC
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+        with:
+          submodules: true
+
+      - name: Setup Dependencies
+        id: setup-dependencies
+        uses: ./.github/actions/setup-dependencies
+        with:
+          build-type: ${{ env.BUILD_TYPE }}
+          artifact-name: Windows-MSVC
+          vcvars-arch: amd64
+          qt-version: 6.11.2
+
+      - name: Configure CMake
+        shell: bash
+        run: |
+          cmake --preset "$CMAKE_PRESET" \
+            -D VCPKG_HOST_TRIPLET="$VCPKG_TRIPLET" \
+            -D VCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET" \
+            -D Launcher_APP_BINARY_NAME="nexuxlauncher" \
+            -D CMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}"
+
+      - name: Build Project
+        shell: bash
+        run: |
+          cmake --build --preset "$CMAKE_PRESET" --config "${{ env.BUILD_TYPE }}"
+
+      - name: Package Windows Installer & Portable Zip
+        shell: bash
+        run: |
+          # Copy custom NEXUX themes to binary output directory
+          BUILD_DIR="build/ci"
+          if [ -d "$BUILD_DIR" ]; then
+            mkdir -p "$BUILD_DIR/themes"
+            cp -r themes/* "$BUILD_DIR/themes/" 2>/dev/null || true
+          fi
+          
+          # Create Portable Zip
+          cd "$BUILD_DIR" || exit 1
+          touch portable.txt
+          7z a -tzip -mx=9 "NEXUX-Launcher-Portable.zip" .
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: NEXUX-Launcher-Windows-Portable
+          path: build/ci/NEXUX-Launcher-Portable.zip
+          if-no-files-found: warn
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: NEXUX Launcher Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            build/ci/NEXUX-Launcher-Portable.zip
+            build/ci/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

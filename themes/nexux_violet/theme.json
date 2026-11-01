@@ -1,0 +1,30 @@
+{
+  "name": "NEXUX Synthwave Violet",
+  "widgets": "Fusion",
+  "qssFilePath": "themeStyle.css",
+  "colors": {
+    "Window": "#0f0917",
+    "WindowText": "#f1f5f9",
+    "Base": "#0f0917",
+    "AlternateBase": "#180f24",
+    "ToolTipBase": "#180f24",
+    "ToolTipText": "#c084fc",
+    "Text": "#f8fafc",
+    "Button": "#180f24",
+    "ButtonText": "#f8fafc",
+    "BrightText": "#c084fc",
+    "Link": "#ec4899",
+    "Highlight": "#c084fc",
+    "HighlightedText": "#ffffff",
+    "fadeColor": "#0f0917",
+    "fadeAmount": 0.5
+  },
+  "logColors": {
+    "Message": "#c084fc",
+    "Launcher": "#ec4899",
+    "Debug": "#94a3b8",
+    "Warning": "#fbbf24",
+    "Error": "#f87171",
+    "Fatal": "#ef4444"
+  }
+}

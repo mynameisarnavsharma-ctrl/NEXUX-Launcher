@@ -1,0 +1,30 @@
+{
+  "name": "NEXUX Pure Stealth",
+  "widgets": "Fusion",
+  "qssFilePath": "themeStyle.css",
+  "colors": {
+    "Window": "#0a0a0c",
+    "WindowText": "#f1f5f9",
+    "Base": "#0a0a0c",
+    "AlternateBase": "#121216",
+    "ToolTipBase": "#121216",
+    "ToolTipText": "#94a3b8",
+    "Text": "#f8fafc",
+    "Button": "#121216",
+    "ButtonText": "#f8fafc",
+    "BrightText": "#94a3b8",
+    "Link": "#cbd5e1",
+    "Highlight": "#94a3b8",
+    "HighlightedText": "#ffffff",
+    "fadeColor": "#0a0a0c",
+    "fadeAmount": 0.5
+  },
+  "logColors": {
+    "Message": "#94a3b8",
+    "Launcher": "#cbd5e1",
+    "Debug": "#94a3b8",
+    "Warning": "#fbbf24",
+    "Error": "#f87171",
+    "Fatal": "#ef4444"
+  }
+}

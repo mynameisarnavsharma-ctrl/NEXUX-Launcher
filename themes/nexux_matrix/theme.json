@@ -1,0 +1,30 @@
+{
+  "name": "NEXUX Matrix Emerald",
+  "widgets": "Fusion",
+  "qssFilePath": "themeStyle.css",
+  "colors": {
+    "Window": "#06130b",
+    "WindowText": "#f1f5f9",
+    "Base": "#06130b",
+    "AlternateBase": "#091c10",
+    "ToolTipBase": "#091c10",
+    "ToolTipText": "#00ff88",
+    "Text": "#f8fafc",
+    "Button": "#091c10",
+    "ButtonText": "#f8fafc",
+    "BrightText": "#00ff88",
+    "Link": "#00cc66",
+    "Highlight": "#00ff88",
+    "HighlightedText": "#ffffff",
+    "fadeColor": "#06130b",
+    "fadeAmount": 0.5
+  },
+  "logColors": {
+    "Message": "#00ff88",
+    "Launcher": "#00cc66",
+    "Debug": "#94a3b8",
+    "Warning": "#fbbf24",
+    "Error": "#f87171",
+    "Fatal": "#ef4444"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "nexux-launcher-companion",
+  "version": "1.0.0",
+  "description": "NEXUX Launcher Cyber Dashboard & 1-Click Mod Manager",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

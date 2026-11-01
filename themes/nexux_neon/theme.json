@@ -1,0 +1,30 @@
+{
+  "name": "NEXUX Cyber Neon",
+  "widgets": "Fusion",
+  "qssFilePath": "themeStyle.css",
+  "colors": {
+    "Window": "#0d1929",
+    "WindowText": "#f1f5f9",
+    "Base": "#060b13",
+    "AlternateBase": "#0f172a",
+    "ToolTipBase": "#0a1424",
+    "ToolTipText": "#00f0ff",
+    "Text": "#f8fafc",
+    "Button": "#162338",
+    "ButtonText": "#f8fafc",
+    "BrightText": "#00f0ff",
+    "Link": "#38bdf8",
+    "Highlight": "#00a8ff",
+    "HighlightedText": "#ffffff",
+    "fadeColor": "#060b13",
+    "fadeAmount": 0.5
+  },
+  "logColors": {
+    "Message": "#38bdf8",
+    "Launcher": "#00f0ff",
+    "Debug": "#94a3b8",
+    "Warning": "#fbbf24",
+    "Error": "#f87171",
+    "Fatal": "#ef4444"
+  }
+}
