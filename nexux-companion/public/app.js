@@ -94,7 +94,7 @@ async function searchMods(query = state.currentQuery) {
     if (hits.length === 0) {
       grid.innerHTML = `
         <div class="loading-state">
-          <p>⚠️ No mods found matching your filters. Try clearing the Minecraft version or loader filter.</p>
+          <p> No mods found matching your filters. Try clearing the Minecraft version or loader filter.</p>
         </div>
       `;
       return;
@@ -112,8 +112,8 @@ async function searchMods(query = state.currentQuery) {
               <h3 class="mod-title">${escapeHtml(mod.title)}</h3>
               <p class="mod-author">by <strong>${escapeHtml(mod.author || 'Author')}</strong></p>
               <div class="mod-stats">
-                <span>⬇️ ${formatCount(mod.downloads)}</span>
-                <span>⭐ ${formatCount(mod.follows)}</span>
+                <span>⬇ ${formatCount(mod.downloads)}</span>
+                <span> ${formatCount(mod.follows)}</span>
               </div>
             </div>
           </div>
@@ -125,7 +125,7 @@ async function searchMods(query = state.currentQuery) {
               ${categories.map((c) => `<span class="cat-tag">${c}</span>`).join('')}
             </div>
             <button class="btn-install" onclick="installMod('${mod.project_id}', '${escapeHtml(mod.title)}', this)">
-              ⚡ 1-Click Install
+               1-Click Install
             </button>
           </div>
         </div>
@@ -134,7 +134,7 @@ async function searchMods(query = state.currentQuery) {
   } catch (err) {
     grid.innerHTML = `
       <div class="loading-state">
-        <p style="color:#f87171;">❌ Search error: ${err.message}</p>
+        <p style="color:#f87171;"> Search error: ${err.message}</p>
       </div>
     `;
   }
@@ -146,7 +146,7 @@ window.installMod = async function (projectId, modTitle, btnElement) {
 
   const originalText = btnElement.innerHTML;
   btnElement.classList.add('installing');
-  btnElement.innerHTML = '⏳ Downloading...';
+  btnElement.innerHTML = ' Downloading...';
 
   try {
     const res = await fetch('/api/mods/install', {
@@ -167,9 +167,9 @@ window.installMod = async function (projectId, modTitle, btnElement) {
 
     btnElement.classList.remove('installing');
     btnElement.classList.add('installed');
-    btnElement.innerHTML = '✅ Installed!';
+    btnElement.innerHTML = ' Installed!';
 
-    showToast(`⚡ <strong>${modTitle}</strong> successfully installed!<br><span style="font-size:11px;color:#94a3b8;">Saved to: ${result.destPath}</span>`);
+    showToast(` <strong>${modTitle}</strong> successfully installed!<br><span style="font-size:11px;color:#94a3b8;">Saved to: ${result.destPath}</span>`);
 
     setTimeout(() => {
       btnElement.classList.remove('installed');
@@ -177,8 +177,8 @@ window.installMod = async function (projectId, modTitle, btnElement) {
     }, 4000);
   } catch (err) {
     btnElement.classList.remove('installing');
-    btnElement.innerHTML = '❌ Failed';
-    showToast(`❌ Failed to install ${modTitle}: ${err.message}`);
+    btnElement.innerHTML = ' Failed';
+    showToast(` Failed to install ${modTitle}: ${err.message}`);
     setTimeout(() => {
       btnElement.innerHTML = originalText;
     }, 3000);
@@ -188,7 +188,7 @@ window.installMod = async function (projectId, modTitle, btnElement) {
 // ─── Apply Theme to Prism Launcher ────────────────────────────────────────────
 async function applyThemeToPrism() {
   const btn = document.getElementById('btnApplyPrismTheme');
-  btn.textContent = '⏳ Installing Theme...';
+  btn.textContent = ' Installing Theme...';
   try {
     const res = await fetch('/api/themes/install', {
       method: 'POST',
@@ -198,16 +198,16 @@ async function applyThemeToPrism() {
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || 'Failed to install theme');
 
-    btn.textContent = '✅ Applied!';
-    showToast(`🎉 <strong>Theme Applied!</strong><br>Installed <strong>${state.theme}</strong> into Prism Launcher! Select it under <em>Settings ➔ Appearance</em>.`);
+    btn.textContent = ' Applied!';
+    showToast(` <strong>Theme Applied!</strong><br>Installed <strong>${state.theme}</strong> into Prism Launcher! Select it under <em>Settings  Appearance</em>.`);
     setTimeout(() => {
-      btn.textContent = '🚀 Apply to Prism Launcher';
+      btn.textContent = ' Apply to Prism Launcher';
     }, 3000);
   } catch (err) {
-    btn.textContent = '❌ Failed';
-    showToast(`❌ Failed to export theme: ${err.message}`);
+    btn.textContent = ' Failed';
+    showToast(` Failed to export theme: ${err.message}`);
     setTimeout(() => {
-      btn.textContent = '🚀 Apply to Prism Launcher';
+      btn.textContent = ' Apply to Prism Launcher';
     }, 3000);
   }
 }
@@ -275,3 +275,4 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initial search
   searchMods('optimization');
 });
+

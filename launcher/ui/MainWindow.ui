@@ -402,7 +402,7 @@
     </iconset>
    </property>
    <property name="text">
-    <string>⚡ 1-Click Mods</string>
+    <string>1-Click Mods</string>
    </property>
    <property name="toolTip">
     <string>Quickly browse, search, and download mods in 1 click for this instance</string>

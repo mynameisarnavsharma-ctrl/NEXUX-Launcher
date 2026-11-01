@@ -91,3 +91,4 @@ QString NexuxTheme::tooltip()
 {
     return QObject::tr("Official NEXUX Cyberpunk Neon Theme");
 }
+

@@ -5,3 +5,4 @@ echo Starting NEXUX Launcher Companion on http://localhost:4500...
 start http://localhost:4500
 node server.js
 pause
+

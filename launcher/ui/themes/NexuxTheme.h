@@ -20,3 +20,4 @@ class NexuxTheme : public FusionTheme {
     double fadeAmount() override;
     QColor fadeColor() override;
 };
+
