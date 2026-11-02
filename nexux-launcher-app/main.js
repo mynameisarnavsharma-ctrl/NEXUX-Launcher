@@ -3,7 +3,63 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const http = require('http');
+const child = require('child_process');
 const { Client, Authenticator } = require('minecraft-launcher-core');
+
+// Patch MCLC to strictly enforce javaw.exe (GUI subsystem) and windowsHide: true
+try {
+  Client.prototype.startMinecraft = function (launchArguments) {
+    let javaBin = this.options.javaPath ? this.options.javaPath : 'javaw';
+    if (process.platform === 'win32') {
+      if (javaBin.endsWith('java.exe')) {
+        const javawCandidate = javaBin.replace(/java\.exe$/i, 'javaw.exe');
+        if (fs.existsSync(javawCandidate)) {
+          javaBin = javawCandidate;
+        }
+      } else if (javaBin === 'java') {
+        javaBin = 'javaw';
+      }
+    }
+    const minecraft = child.spawn(javaBin, launchArguments, {
+      cwd: this.options.overrides.cwd || this.options.root,
+      detached: this.options.overrides.detached,
+      windowsHide: true,
+    });
+    minecraft.stdout.on('data', (data) => this.emit('data', data.toString('utf-8')));
+    minecraft.stderr.on('data', (data) => this.emit('data', data.toString('utf-8')));
+    minecraft.on('close', (code) => this.emit('close', code));
+    return minecraft;
+  };
+
+  const Handler = require('minecraft-launcher-core/components/handler');
+  if (Handler && Handler.prototype) {
+    Handler.prototype.checkJava = function (java) {
+      let checkCmd = java;
+      if (typeof checkCmd === 'string') {
+        if (checkCmd.toLowerCase().endsWith('javaw.exe')) {
+          checkCmd = checkCmd.replace(/javaw\.exe$/i, 'java.exe');
+        } else if (checkCmd.toLowerCase() === 'javaw') {
+          checkCmd = 'java';
+        }
+      }
+      return new Promise((resolve) => {
+        child.exec(`"${checkCmd}" -version`, (error, stdout, stderr) => {
+          if (error) {
+            resolve({ run: false, message: error });
+          } else {
+            const out = (stderr || '') + ' ' + (stdout || '');
+            const match = out.match(/"(.*?)"/);
+            const ver = match ? match[1] : 'detected';
+            this.client.emit('debug', `[MCLC]: Using Java version ${ver} ${out.includes('64-Bit') ? '64-bit' : '32-Bit'}`);
+            resolve({ run: true });
+          }
+        });
+      });
+    };
+  }
+} catch (patchErr) {
+  console.warn('[Patch Warning]', patchErr.message);
+}
 
 // Determine launcher data directory
 const LAUNCHER_DIR = path.join(
