@@ -17,12 +17,23 @@ const CONFIG_FILE = path.join(LAUNCHER_DIR, 'launcher_config.json');
 if (!fs.existsSync(LAUNCHER_DIR)) fs.mkdirSync(LAUNCHER_DIR, { recursive: true });
 if (!fs.existsSync(MODS_DIR)) fs.mkdirSync(MODS_DIR, { recursive: true });
 
+// Preferred default Java: Always use javaw.exe (GUI subsystem) to completely eliminate CMD windows
+function getInitialJavaPath() {
+  const jdk25W = 'C:\\Program Files\\Java\\jdk-25\\bin\\javaw.exe';
+  const oracleW = 'C:\\Program Files\\Common Files\\Oracle\\Java\\javapath\\javaw.exe';
+  if (fs.existsSync(jdk25W)) return jdk25W;
+  if (fs.existsSync(oracleW)) return oracleW;
+  return 'javaw';
+}
+
 // Default configuration
 const DEFAULT_CONFIG = {
   theme: 'cyber_neon',
+  minecraftFont: true,
+  autoConnectServer: false,
   ramMin: 2048,
   ramMax: 4096,
-  javaPath: 'C:\\Program Files\\Common Files\\Oracle\\Java\\javapath\\java.exe',
+  javaPath: getInitialJavaPath(),
   jvmArgs: ['-XX:+UseG1GC', '-XX:+ParallelRefProcEnabled'],
   resolution: { width: 1280, height: 720 },
   activeVersion: '1.21.1',
@@ -31,11 +42,24 @@ const DEFAULT_CONFIG = {
   serverAddress: 'nexuxsmp.play.hosting',
 };
 
+function sanitizeJavaPath(jp) {
+  if (!jp || typeof jp !== 'string') return getInitialJavaPath();
+  if (process.platform === 'win32' && jp.toLowerCase().endsWith('java.exe')) {
+    const javawCandidate = jp.replace(/java\.exe$/i, 'javaw.exe');
+    if (fs.existsSync(javawCandidate)) {
+      return javawCandidate;
+    }
+  }
+  return jp;
+}
+
 function loadConfig() {
   try {
     if (fs.existsSync(CONFIG_FILE)) {
       const data = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-      return { ...DEFAULT_CONFIG, ...data };
+      const merged = { ...DEFAULT_CONFIG, ...data };
+      merged.javaPath = sanitizeJavaPath(merged.javaPath);
+      return merged;
     }
   } catch (err) {
     console.error('[Config] Error loading config:', err.message);
@@ -45,7 +69,8 @@ function loadConfig() {
 
 function saveConfig(cfg) {
   try {
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2), 'utf8');
+    const cleanCfg = { ...cfg, javaPath: sanitizeJavaPath(cfg.javaPath) };
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(cleanCfg, null, 2), 'utf8');
   } catch (err) {
     console.error('[Config] Error saving config:', err.message);
   }
@@ -58,10 +83,10 @@ let activeChildProcess = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1180,
-    height: 750,
-    minWidth: 980,
-    minHeight: 620,
+    width: 1200,
+    height: 760,
+    minWidth: 1000,
+    minHeight: 640,
     frame: false,
     titleBarStyle: 'hidden',
     backgroundColor: '#060b13',
@@ -111,18 +136,20 @@ ipcMain.handle('config-save', (event, newCfg) => {
   return launcherConfig;
 });
 
-// Auto-detect Java executable
+// Auto-detect Java executable (strictly searches for javaw.exe to prevent any console window)
 ipcMain.handle('detect-java', async () => {
   const commonPaths = [
-    'C:\\Program Files\\Common Files\\Oracle\\Java\\javapath\\java.exe',
-    'C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.0-hotspot\\bin\\java.exe',
-    'C:\\Program Files\\Java\\jdk-21\\bin\\java.exe',
-    'C:\\Program Files\\Java\\jre-1.8\\bin\\java.exe',
-    'C:\\Program Files (x86)\\Common Files\\Oracle\\Java\\javapath\\java.exe',
+    'C:\\Program Files\\Java\\jdk-25\\bin\\javaw.exe',
+    'C:\\Program Files\\Common Files\\Oracle\\Java\\javapath\\javaw.exe',
+    'C:\\Program Files\\Java\\jdk-21\\bin\\javaw.exe',
+    'C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.0-hotspot\\bin\\javaw.exe',
+    'C:\\Program Files\\Java\\jre-1.8\\bin\\javaw.exe',
+    'C:\\Program Files (x86)\\Common Files\\Oracle\\Java\\javapath\\javaw.exe',
   ];
 
   if (process.env.JAVA_HOME) {
-    commonPaths.unshift(path.join(process.env.JAVA_HOME, 'bin', 'java.exe'));
+    const homeW = path.join(process.env.JAVA_HOME, 'bin', 'javaw.exe');
+    if (fs.existsSync(homeW)) return homeW;
   }
 
   for (const p of commonPaths) {
@@ -131,7 +158,7 @@ ipcMain.handle('detect-java', async () => {
     }
   }
 
-  return 'java';
+  return 'javaw';
 });
 
 // Fetch Minecraft official versions manifest
@@ -309,13 +336,16 @@ ipcMain.handle('mods-open-folder', () => {
   return true;
 });
 
-// Launch Minecraft Game
+// Launch Minecraft Game (Strictly suppress any CMD / terminal window)
 ipcMain.handle('game-launch', async (event, customOpts = {}) => {
   if (activeChildProcess) {
     return { success: false, error: 'Minecraft is already running.' };
   }
 
   const cfg = { ...launcherConfig, ...customOpts };
+
+  // Enforce javaw.exe on Windows so that no console window is ever spawned
+  let finalJava = sanitizeJavaPath(cfg.javaPath || getInitialJavaPath());
 
   const launcher = new Client();
   activeLauncher = launcher;
@@ -345,6 +375,14 @@ ipcMain.handle('game-launch', async (event, customOpts = {}) => {
   try {
     const auth = Authenticator.getAuth(cfg.activeAccount || 'NEXUX_Player');
 
+    // Build custom launch arguments
+    const customArgs = [...(cfg.jvmArgs || ['-XX:+UseG1GC', '-XX:+ParallelRefProcEnabled'])];
+
+    // 1-Click Direct Join Server if enabled
+    if (cfg.autoConnectServer && cfg.serverAddress) {
+      customArgs.push(`--quickPlayMultiplayer=${cfg.serverAddress}`);
+    }
+
     const launchOptions = {
       clientPackage: null,
       authorization: auth,
@@ -357,11 +395,15 @@ ipcMain.handle('game-launch', async (event, customOpts = {}) => {
         max: `${cfg.ramMax || 4096}M`,
         min: `${cfg.ramMin || 2048}M`,
       },
-      javaPath: cfg.javaPath || 'java',
-      customArgs: cfg.jvmArgs || ['-XX:+UseG1GC'],
+      javaPath: finalJava,
+      customArgs,
       window: {
         width: cfg.resolution?.width || 1280,
         height: cfg.resolution?.height || 720,
+      },
+      overrides: {
+        detached: false,
+        cwd: LAUNCHER_DIR,
       },
     };
 

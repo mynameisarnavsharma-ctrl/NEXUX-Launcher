@@ -43,3 +43,4 @@ contextBridge.exposeInMainWorld('nexuxApi', {
     ipcRenderer.on('game-closed', (event, code) => cb(code));
   },
 });
+

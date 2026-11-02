@@ -8,9 +8,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let launcherConfig = {
     theme: 'cyber_neon',
+    minecraftFont: true,
+    autoConnectServer: false,
     ramMin: 2048,
     ramMax: 4096,
-    javaPath: 'C:\\Program Files\\Common Files\\Oracle\\Java\\javapath\\java.exe',
+    javaPath: 'C:\\Program Files\\Java\\jdk-25\\bin\\javaw.exe',
     jvmArgs: ['-XX:+UseG1GC', '-XX:+ParallelRefProcEnabled'],
     resolution: { width: 1280, height: 720 },
     activeVersion: '1.21.1',
@@ -31,10 +33,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   const tabPanes = document.querySelectorAll('.tab-pane');
 
   const launchAccountSelect = document.getElementById('launchAccountSelect');
+  const activeAccountAvatar = document.getElementById('activeAccountAvatar');
   const launchVersionSelect = document.getElementById('launchVersionSelect');
   const btnLaunchGame = document.getElementById('btnLaunchGame');
   const btnKillGame = document.getElementById('btnKillGame');
   const launchBtnText = document.getElementById('launchBtnText');
+
+  const btnCopyServerIp = document.getElementById('btnCopyServerIp');
+  const autoJoinServerToggle = document.getElementById('autoJoinServerToggle');
 
   const launchProgressCard = document.getElementById('launchProgressCard');
   const progressStatusText = document.getElementById('progressStatusText');
@@ -59,6 +65,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const accountsList = document.getElementById('accountsList');
 
   const themeOptions = document.querySelectorAll('.theme-option');
+  const minecraftFontToggle = document.getElementById('minecraftFontToggle');
+  const ramChips = document.querySelectorAll('.ram-chip');
   const ramMaxSlider = document.getElementById('ramMaxSlider');
   const ramMaxDisplay = document.getElementById('ramMaxDisplay');
   const ramMinSlider = document.getElementById('ramMinSlider');
@@ -92,6 +100,36 @@ document.addEventListener('DOMContentLoaded', async () => {
   winMaximize?.addEventListener('click', () => api.maximize());
   winClose?.addEventListener('click', () => api.close());
 
+  // ─── Copy Server IP ─────────────────────────────────────
+  btnCopyServerIp?.addEventListener('click', () => {
+    const ip = launcherConfig.serverAddress || 'nexuxsmp.play.hosting';
+    navigator.clipboard.writeText(ip);
+    showToast(`Server IP copied to clipboard: ${ip}`);
+  });
+
+  // ─── Auto-Join Toggle ───────────────────────────────────
+  autoJoinServerToggle?.addEventListener('change', (e) => {
+    launcherConfig.autoConnectServer = e.target.checked;
+    api.saveConfig(launcherConfig);
+    showToast(e.target.checked ? 'Auto-connect to server enabled' : 'Auto-connect disabled');
+  });
+
+  // ─── Minecraft Font Toggle ──────────────────────────────
+  function applyMinecraftFont(enabled) {
+    if (enabled) {
+      document.body.classList.add('mc-font-enabled');
+    } else {
+      document.body.classList.remove('mc-font-enabled');
+    }
+  }
+
+  minecraftFontToggle?.addEventListener('change', (e) => {
+    launcherConfig.minecraftFont = e.target.checked;
+    applyMinecraftFont(e.target.checked);
+    api.saveConfig(launcherConfig);
+    showToast(e.target.checked ? 'Minecraft font enabled' : 'Standard font enabled');
+  });
+
   // ─── Tab Routing ────────────────────────────────────────
   navItems.forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -110,9 +148,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ─── Theme Switcher ─────────────────────────────────────
   function applyTheme(themeKey) {
-    document.body.className = `theme-${themeKey.replace('_', '-')}`;
+    const cleanKey = (themeKey || 'cyber_neon').replace(/_/g, '-');
+    document.body.className = `theme-${cleanKey} ${launcherConfig.minecraftFont ? 'mc-font-enabled' : ''}`;
     themeOptions.forEach((opt) => {
-      if (opt.getAttribute('data-theme') === themeKey.replace('_', '-')) {
+      if (opt.getAttribute('data-theme') === cleanKey) {
         opt.classList.add('active');
       } else {
         opt.classList.remove('active');
@@ -122,11 +161,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   themeOptions.forEach((opt) => {
     opt.addEventListener('click', () => {
-      const selectedTheme = opt.getAttribute('data-theme').replace('-', '_');
+      const selectedTheme = opt.getAttribute('data-theme').replace(/-/g, '_');
       launcherConfig.theme = selectedTheme;
       applyTheme(selectedTheme);
       api.saveConfig(launcherConfig);
       showToast(`Theme switched to ${opt.querySelector('.theme-name').textContent}`);
+    });
+  });
+
+  // ─── RAM Preset Chips ───────────────────────────────────
+  function updateRamPresetChips(val) {
+    ramChips.forEach((chip) => {
+      if (parseInt(chip.getAttribute('data-ram'), 10) === parseInt(val, 10)) {
+        chip.classList.add('active');
+      } else {
+        chip.classList.remove('active');
+      }
+    });
+  }
+
+  ramChips.forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const mb = parseInt(chip.getAttribute('data-ram'), 10);
+      ramMaxSlider.value = mb;
+      ramMaxDisplay.textContent = `${mb} MB (${(mb / 1024).toFixed(0)} GB)`;
+      updateRamPresetChips(mb);
+      launcherConfig.ramMax = mb;
+      api.saveConfig(launcherConfig);
+      showToast(`RAM allocation set to ${(mb / 1024).toFixed(0)} GB`);
     });
   });
 
@@ -136,12 +198,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (loaded) launcherConfig = { ...launcherConfig, ...loaded };
   } catch (e) {}
 
+  // Enforce javaw.exe
+  if (launcherConfig.javaPath && launcherConfig.javaPath.toLowerCase().endsWith('java.exe')) {
+    launcherConfig.javaPath = launcherConfig.javaPath.replace(/java\.exe$/i, 'javaw.exe');
+  }
+
+  applyMinecraftFont(launcherConfig.minecraftFont !== false);
+  if (minecraftFontToggle) minecraftFontToggle.checked = launcherConfig.minecraftFont !== false;
+  if (autoJoinServerToggle) autoJoinServerToggle.checked = !!launcherConfig.autoConnectServer;
+
   applyTheme(launcherConfig.theme || 'cyber_neon');
   ramMaxSlider.value = launcherConfig.ramMax || 4096;
   ramMaxDisplay.textContent = `${launcherConfig.ramMax || 4096} MB (${((launcherConfig.ramMax || 4096) / 1024).toFixed(0)} GB)`;
+  updateRamPresetChips(launcherConfig.ramMax || 4096);
+
   ramMinSlider.value = launcherConfig.ramMin || 2048;
   ramMinDisplay.textContent = `${launcherConfig.ramMin || 2048} MB (${((launcherConfig.ramMin || 2048) / 1024).toFixed(0)} GB)`;
-  javaPathInput.value = launcherConfig.javaPath || '';
+  javaPathInput.value = launcherConfig.javaPath || 'C:\\Program Files\\Java\\jdk-25\\bin\\javaw.exe';
   resWidthInput.value = launcherConfig.resolution?.width || 1280;
   resHeightInput.value = launcherConfig.resolution?.height || 720;
   jvmArgsInput.value = (launcherConfig.jvmArgs || []).join(' ');
@@ -149,12 +222,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ─── RAM Slider Updates ─────────────────────────────────
   ramMaxSlider.addEventListener('input', (e) => {
-    const val = e.target.value;
+    const val = parseInt(e.target.value, 10);
     ramMaxDisplay.textContent = `${val} MB (${(val / 1024).toFixed(0)} GB)`;
+    updateRamPresetChips(val);
   });
 
   ramMinSlider.addEventListener('input', (e) => {
-    const val = e.target.value;
+    const val = parseInt(e.target.value, 10);
     ramMinDisplay.textContent = `${val} MB (${(val / 1024).toFixed(0)} GB)`;
   });
 
@@ -182,12 +256,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
     launcherConfig.jvmArgs = jvmArgsInput.value.split(' ').filter(Boolean);
     launcherConfig.serverAddress = serverAddressInput.value.trim();
+    launcherConfig.minecraftFont = minecraftFontToggle ? minecraftFontToggle.checked : true;
 
     await api.saveConfig(launcherConfig);
     showToast('Settings saved successfully.');
   });
 
-  // ─── Accounts Management ────────────────────────────────
+  // ─── Accounts Management & Live Avatar Heads ───────────
+  function updatePlayerAvatar(uname) {
+    if (!activeAccountAvatar) return;
+    const cleanUname = encodeURIComponent(uname || 'NEXUX_Player');
+    activeAccountAvatar.src = `https://minotar.net/helm/${cleanUname}/32`;
+    activeAccountAvatar.style.display = 'block';
+  }
+
   function renderAccounts() {
     launchAccountSelect.innerHTML = '';
     accountsList.innerHTML = '';
@@ -204,27 +286,30 @@ document.addEventListener('DOMContentLoaded', async () => {
       item.className = `account-item ${acc === launcherConfig.activeAccount ? 'active' : ''}`;
       item.innerHTML = `
         <div class="account-name-group">
-          <div class="account-avatar"></div>
+          <img class="account-avatar" src="https://minotar.net/helm/${encodeURIComponent(acc)}/32" onerror="this.src='https://minotar.net/helm/char/32'" />
           <div>
-            <div class="account-username">${escapeHtml(acc)}</div>
-            <div class="account-type">Offline Profile</div>
+            <div class="account-username mc-font">${escapeHtml(acc)}</div>
+            <div class="account-type mc-font">Offline Player</div>
           </div>
         </div>
         <div class="mod-row-actions">
-          <button class="cyber-btn small ${acc === launcherConfig.activeAccount ? 'primary' : ''}" data-action="select" data-acc="${escapeHtml(acc)}">
+          <button class="cyber-btn small mc-font ${acc === launcherConfig.activeAccount ? 'primary' : ''}" data-action="select" data-acc="${escapeHtml(acc)}">
             ${acc === launcherConfig.activeAccount ? 'Active' : 'Select'}
           </button>
-          ${accounts.length > 1 ? `<button class="cyber-btn small danger" data-action="delete" data-acc="${escapeHtml(acc)}">Delete</button>` : ''}
+          ${accounts.length > 1 ? `<button class="cyber-btn small danger mc-font" data-action="delete" data-acc="${escapeHtml(acc)}">Delete</button>` : ''}
         </div>
       `;
       accountsList.appendChild(item);
     });
+
+    updatePlayerAvatar(launcherConfig.activeAccount);
   }
 
   renderAccounts();
 
   launchAccountSelect?.addEventListener('change', (e) => {
     launcherConfig.activeAccount = e.target.value;
+    updatePlayerAvatar(e.target.value);
     api.saveConfig(launcherConfig);
     renderAccounts();
   });
@@ -270,32 +355,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ─── Versions Manifest ──────────────────────────────────
   async function loadMojangVersions() {
-    versionsList.innerHTML = '<div class="loading-state">Loading official Mojang manifest...</div>';
+    versionsList.innerHTML = '<div class="loading-state mc-font">Loading official Mojang manifest...</div>';
     try {
       const manifest = await api.getMcVersions();
       if (!manifest || !manifest.versions) {
-        versionsList.innerHTML = '<div class="loading-state">Failed to load manifest.</div>';
+        versionsList.innerHTML = '<div class="loading-state mc-font">Failed to load manifest.</div>';
         return;
       }
 
       versionsList.innerHTML = '';
-      manifest.versions.slice(0, 40).forEach((v) => {
+      manifest.versions.slice(0, 45).forEach((v) => {
         const row = document.createElement('div');
         row.className = 'mod-row';
         row.setAttribute('data-type', v.type);
         row.innerHTML = `
           <div>
-            <span class="mod-row-name">${escapeHtml(v.id)}</span>
-            <span style="font-size:11px;color:var(--text-muted);margin-left:10px;">${escapeHtml(v.type)}</span>
+            <span class="mod-row-name mc-font">${escapeHtml(v.id)}</span>
+            <span style="font-size:11px;color:var(--text-muted);margin-left:10px;">[${escapeHtml(v.type)}]</span>
           </div>
-          <button class="cyber-btn small ${v.id === launcherConfig.activeVersion ? 'primary' : ''}" data-vid="${escapeHtml(v.id)}">
+          <button class="cyber-btn small mc-font ${v.id === launcherConfig.activeVersion ? 'primary' : ''}" data-vid="${escapeHtml(v.id)}">
             ${v.id === launcherConfig.activeVersion ? 'Active' : 'Select'}
           </button>
         `;
         versionsList.appendChild(row);
       });
     } catch (err) {
-      versionsList.innerHTML = `<div class="loading-state">Error loading versions: ${escapeHtml(err.message)}</div>`;
+      versionsList.innerHTML = `<div class="loading-state mc-font">Error loading versions: ${escapeHtml(err.message)}</div>`;
     }
   }
 
@@ -364,7 +449,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       installedCount.textContent = installedModsList.length;
 
       if (installedModsList.length === 0) {
-        installedModsContainer.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);">No mods installed yet. Search and 1-click install mods from the Browse Modrinth tab.</div>';
+        installedModsContainer.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);" class="mc-font">No mods installed yet. Search and 1-click install mods from the Browse Modrinth tab.</div>';
         return;
       }
 
@@ -375,10 +460,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         row.innerHTML = `
           <div class="mod-row-name ${mod.enabled ? '' : 'disabled'}">${escapeHtml(mod.filename)}</div>
           <div class="mod-row-actions">
-            <button class="cyber-btn small ${mod.enabled ? 'primary' : ''}" data-mod-toggle="${escapeHtml(mod.filename)}">
+            <button class="cyber-btn small mc-font ${mod.enabled ? 'primary' : ''}" data-mod-toggle="${escapeHtml(mod.filename)}">
               ${mod.enabled ? 'Enabled' : 'Disabled'}
             </button>
-            <button class="cyber-btn small danger" data-mod-delete="${escapeHtml(mod.filename)}">
+            <button class="cyber-btn small danger mc-font" data-mod-delete="${escapeHtml(mod.filename)}">
               Delete
             </button>
           </div>
@@ -411,12 +496,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const loader = modLoaderSelect.value;
     const mcVersion = launcherConfig.activeVersion || '1.21.1';
 
-    modsGrid.innerHTML = '<div class="loading-state" style="grid-column: 1/-1;">Searching Modrinth repository...</div>';
+    modsGrid.innerHTML = '<div class="loading-state mc-font" style="grid-column: 1/-1;">Searching Modrinth repository...</div>';
 
     try {
       const hits = await api.searchMods({ query: q, loader, mcVersion, limit: 18 });
       if (!hits || hits.length === 0) {
-        modsGrid.innerHTML = '<div class="loading-state" style="grid-column: 1/-1;">No matching mods found. Try adjusting keywords or loader filter.</div>';
+        modsGrid.innerHTML = '<div class="loading-state mc-font" style="grid-column: 1/-1;">No matching mods found. Try adjusting keywords or loader filter.</div>';
         return;
       }
 
@@ -428,14 +513,14 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div class="mod-header">
             <img class="mod-icon-img" src="${mod.icon_url || 'https://cdn.modrinth.com/placeholder.svg'}" onerror="this.src='https://cdn.modrinth.com/placeholder.svg'" />
             <div class="mod-header-info">
-              <div class="mod-title">${escapeHtml(mod.title)}</div>
+              <div class="mod-title mc-font">${escapeHtml(mod.title)}</div>
               <div class="mod-author">by ${escapeHtml(mod.author)}</div>
             </div>
           </div>
           <div class="mod-description">${escapeHtml(mod.description)}</div>
           <div class="mod-footer">
             <span class="mod-downloads-count">${formatNumber(mod.downloads)} downloads</span>
-            <button class="btn-install-mod" data-project-id="${escapeHtml(mod.project_id)}" data-slug="${escapeHtml(mod.slug)}">
+            <button class="btn-install-mod mc-font" data-project-id="${escapeHtml(mod.project_id)}" data-slug="${escapeHtml(mod.slug)}">
               1-Click Install
             </button>
           </div>
@@ -443,7 +528,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         modsGrid.appendChild(card);
       });
     } catch (err) {
-      modsGrid.innerHTML = `<div class="loading-state" style="grid-column: 1/-1;">Search failed: ${escapeHtml(err.message)}</div>`;
+      modsGrid.innerHTML = `<div class="loading-state mc-font" style="grid-column: 1/-1;">Search failed: ${escapeHtml(err.message)}</div>`;
     }
   }
 
@@ -499,16 +584,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     launchBtnText.textContent = 'STARTING...';
 
     launchProgressCard.classList.remove('hidden');
-    progressStatusText.textContent = 'Initializing launch engine...';
+    progressStatusText.textContent = 'Initializing game client (no CMD)...';
     progressPercent.textContent = '0%';
     progressBarFill.style.width = '0%';
 
-    addLogLine('[Launcher] Launching Minecraft instance...', 'system');
+    addLogLine('[Launcher] Starting Minecraft process with javaw (windowed, zero console)...', 'system');
 
     try {
       const launchRes = await api.launchGame({
         activeVersion: launchVersionSelect.value,
         activeAccount: launchAccountSelect.value,
+        autoConnectServer: autoJoinServerToggle ? autoJoinServerToggle.checked : false,
         ramMin: parseInt(ramMinSlider.value, 10),
         ramMax: parseInt(ramMaxSlider.value, 10),
         javaPath: javaPathInput.value.trim(),
@@ -536,7 +622,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   btnKillGame?.addEventListener('click', async () => {
-    addLogLine('[Launcher] Force stopping game process...', 'warn');
+    addLogLine('[Launcher] Stopping game process...', 'warn');
     await api.killGame();
     resetLaunchState();
     showToast('Game process stopped.');
@@ -626,7 +712,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       close: () => {},
       getConfig: async () => null,
       saveConfig: async (cfg) => cfg,
-      detectJava: async () => 'java',
+      detectJava: async () => 'javaw',
       getMcVersions: async () => ({ versions: [] }),
       searchMods: async () => [],
       installMod: async () => ({ success: true, filename: 'test.jar' }),
