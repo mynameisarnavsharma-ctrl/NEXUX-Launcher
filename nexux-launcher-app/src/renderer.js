@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     jvmArgs: ['-XX:+UseG1GC', '-XX:+ParallelRefProcEnabled'],
     resolution: { width: 1280, height: 720 },
     activeVersion: '1.21.1',
+    lastPlayedVersion: '1.21.1',
     activeAccount: 'NEXUX_Player',
     accounts: ['NEXUX_Player'],
     serverAddress: 'nexuxsmp.play.hosting',
@@ -220,6 +221,46 @@ document.addEventListener('DOMContentLoaded', async () => {
   jvmArgsInput.value = (launcherConfig.jvmArgs || []).join(' ');
   serverAddressInput.value = launcherConfig.serverAddress || 'nexuxsmp.play.hosting';
 
+  // ─── Version Dropdown Selector & Persistence ────────────
+  function selectVersionInDropdown(targetVer) {
+    if (!launchVersionSelect || !targetVer) return;
+    const cleanVer = String(targetVer).trim();
+    if (!cleanVer) return;
+
+    let found = false;
+    for (let i = 0; i < launchVersionSelect.options.length; i++) {
+      if (launchVersionSelect.options[i].value === cleanVer) {
+        launchVersionSelect.selectedIndex = i;
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      const newOpt = document.createElement('option');
+      newOpt.value = cleanVer;
+      newOpt.textContent = `Minecraft ${cleanVer} (Last Played)`;
+      newOpt.selected = true;
+      launchVersionSelect.prepend(newOpt);
+      launchVersionSelect.selectedIndex = 0;
+    }
+  }
+
+  // Restore and remember last played version automatically
+  const activeVer = launcherConfig.lastPlayedVersion || launcherConfig.activeVersion || '1.21.1';
+  launcherConfig.activeVersion = activeVer;
+  launcherConfig.lastPlayedVersion = activeVer;
+  selectVersionInDropdown(activeVer);
+
+  // When user changes dropdown, remember it immediately
+  launchVersionSelect?.addEventListener('change', async (e) => {
+    const chosen = e.target.value;
+    launcherConfig.activeVersion = chosen;
+    launcherConfig.lastPlayedVersion = chosen;
+    await api.saveConfig(launcherConfig);
+    showToast(`Selected Minecraft ${chosen}`);
+  });
+
   // ─── RAM Slider Updates ─────────────────────────────────
   ramMaxSlider.addEventListener('input', (e) => {
     const val = parseInt(e.target.value, 10);
@@ -393,17 +434,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!btn) return;
     const vid = btn.getAttribute('data-vid');
     launcherConfig.activeVersion = vid;
+    launcherConfig.lastPlayedVersion = vid;
     await api.saveConfig(launcherConfig);
 
-    // Update select in Play tab
-    if (![...launchVersionSelect.options].some((o) => o.value === vid)) {
-      const newOpt = document.createElement('option');
-      newOpt.value = vid;
-      newOpt.textContent = `Minecraft ${vid}`;
-      launchVersionSelect.appendChild(newOpt);
-    }
-    launchVersionSelect.value = vid;
-
+    selectVersionInDropdown(vid);
     loadMojangVersions();
     showToast(`Active version set to Minecraft ${vid}`);
   });
@@ -577,6 +611,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ─── Launch Minecraft Engine ────────────────────────────
   btnLaunchGame?.addEventListener('click', async () => {
     if (isGameLaunching) return;
+
+    // Automatically save and remember last played version
+    const versionToPlay = launchVersionSelect ? launchVersionSelect.value : launcherConfig.activeVersion;
+    launcherConfig.activeVersion = versionToPlay;
+    launcherConfig.lastPlayedVersion = versionToPlay;
+    await api.saveConfig(launcherConfig);
 
     isGameLaunching = true;
     btnLaunchGame.disabled = true;

@@ -37,6 +37,7 @@ const DEFAULT_CONFIG = {
   jvmArgs: ['-XX:+UseG1GC', '-XX:+ParallelRefProcEnabled'],
   resolution: { width: 1280, height: 720 },
   activeVersion: '1.21.1',
+  lastPlayedVersion: '1.21.1',
   activeAccount: 'NEXUX_Player',
   accounts: ['NEXUX_Player'],
   serverAddress: 'nexuxsmp.play.hosting',
@@ -343,6 +344,13 @@ ipcMain.handle('game-launch', async (event, customOpts = {}) => {
   }
 
   const cfg = { ...launcherConfig, ...customOpts };
+
+  // Always remember the version that was launched as the last played version
+  if (cfg.activeVersion) {
+    launcherConfig.activeVersion = cfg.activeVersion;
+    launcherConfig.lastPlayedVersion = cfg.activeVersion;
+    saveConfig(launcherConfig);
+  }
 
   // Enforce javaw.exe on Windows so that no console window is ever spawned
   let finalJava = sanitizeJavaPath(cfg.javaPath || getInitialJavaPath());
