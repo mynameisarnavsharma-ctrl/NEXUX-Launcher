@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('nexuxApi', {
   // Java & Versions
   detectJava: () => ipcRenderer.invoke('detect-java'),
   getMcVersions: () => ipcRenderer.invoke('get-mc-versions'),
+  getInstalledVersions: () => ipcRenderer.invoke('get-installed-versions'),
 
   // 1-Click Mod Manager
   searchMods: (params) => ipcRenderer.invoke('modrinth-search', params),

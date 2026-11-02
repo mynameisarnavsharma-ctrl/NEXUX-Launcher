@@ -236,6 +236,19 @@ ipcMain.handle('get-mc-versions', async () => {
   });
 });
 
+// Scan locally installed Minecraft versions in .nexuxlauncher/versions
+ipcMain.handle('get-installed-versions', async () => {
+  try {
+    const versionsDir = path.join(LAUNCHER_DIR, 'versions');
+    if (!fs.existsSync(versionsDir)) return [];
+    return fs.readdirSync(versionsDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name);
+  } catch (err) {
+    return [];
+  }
+});
+
 // 1-Click Modrinth API Search
 ipcMain.handle('modrinth-search', async (event, { query, loader = 'fabric', mcVersion = '1.21.1', limit = 20 }) => {
   return new Promise((resolve, reject) => {

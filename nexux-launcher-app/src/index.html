@@ -41,6 +41,9 @@
 
   <!-- Main Application Body -->
   <div class="app-container">
+    <!-- Interactive Cyber & Minecraft Animated Background Canvas -->
+    <canvas id="bgFunCanvas" class="bg-fun-canvas"></canvas>
+
     <!-- Left Navigation Rail -->
     <nav class="nav-rail">
       <div class="nav-group top-nav">
@@ -165,7 +168,10 @@
 
           <!-- Minecraft Version Selector -->
           <div class="deck-selector-box">
-            <label class="deck-label mc-font">Minecraft Version</label>
+            <div class="deck-label-row">
+              <label class="deck-label mc-font">Minecraft Version</label>
+              <span class="last-played-tag mc-font" id="lastPlayedIndicator">Remembered</span>
+            </div>
             <div class="deck-select-wrap">
               <svg class="select-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>

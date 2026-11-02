@@ -221,44 +221,103 @@ document.addEventListener('DOMContentLoaded', async () => {
   jvmArgsInput.value = (launcherConfig.jvmArgs || []).join(' ');
   serverAddressInput.value = launcherConfig.serverAddress || 'nexuxsmp.play.hosting';
 
-  // ─── Version Dropdown Selector & Persistence ────────────
-  function selectVersionInDropdown(targetVer) {
-    if (!launchVersionSelect || !targetVer) return;
-    const cleanVer = String(targetVer).trim();
-    if (!cleanVer) return;
+  // ─── Version Dropdown Selector & Full Persistence ────────────
+  const lastPlayedIndicator = document.getElementById('lastPlayedIndicator');
 
-    let found = false;
-    for (let i = 0; i < launchVersionSelect.options.length; i++) {
-      if (launchVersionSelect.options[i].value === cleanVer) {
-        launchVersionSelect.selectedIndex = i;
-        found = true;
-        break;
+  const POPULAR_PRESETS = [
+    { id: '1.21.1', name: 'Minecraft 1.21.1 (Latest Release)' },
+    { id: '1.21', name: 'Minecraft 1.21 (Tricky Trials)' },
+    { id: '1.20.4', name: 'Minecraft 1.20.4' },
+    { id: '1.20.1', name: 'Minecraft 1.20.1' },
+    { id: '1.19.4', name: 'Minecraft 1.19.4' },
+    { id: '1.16.5', name: 'Minecraft 1.16.5' },
+  ];
+
+  async function syncAndSelectVersion(targetVer) {
+    if (!launchVersionSelect) return;
+
+    // Detect installed local versions in .nexuxlauncher/versions (e.g. 26.3, 1.21.1)
+    let installedVersions = [];
+    try {
+      if (api.getInstalledVersions) {
+        installedVersions = await api.getInstalledVersions();
       }
+    } catch (e) {
+      installedVersions = [];
     }
 
-    if (!found) {
-      const newOpt = document.createElement('option');
-      newOpt.value = cleanVer;
-      newOpt.textContent = `Minecraft ${cleanVer} (Last Played)`;
-      newOpt.selected = true;
-      launchVersionSelect.prepend(newOpt);
-      launchVersionSelect.selectedIndex = 0;
+    // Determine target version to restore and remember
+    const rememberedVer = targetVer || launcherConfig.lastPlayedVersion || localStorage.getItem('nexux_last_played_version') || launcherConfig.activeVersion || (installedVersions.length > 0 ? installedVersions[0] : '1.21.1');
+    const cleanVer = String(rememberedVer).trim();
+
+    // Build unified versions list: target remembered first, then installed, then popular presets
+    const allVersions = new Map();
+
+    // 1. Target remembered version
+    allVersions.set(cleanVer, {
+      id: cleanVer,
+      title: `Minecraft ${cleanVer} [Last Played]`,
+      isLast: true,
+    });
+
+    // 2. Installed versions
+    installedVersions.forEach((v) => {
+      if (!allVersions.has(v)) {
+        allVersions.set(v, {
+          id: v,
+          title: `Minecraft ${v} [Installed]`,
+          isLast: false,
+        });
+      }
+    });
+
+    // 3. Popular presets
+    POPULAR_PRESETS.forEach((p) => {
+      if (!allVersions.has(p.id)) {
+        allVersions.set(p.id, {
+          id: p.id,
+          title: p.name,
+          isLast: false,
+        });
+      }
+    });
+
+    // Render options
+    launchVersionSelect.innerHTML = '';
+    allVersions.forEach((item) => {
+      const opt = document.createElement('option');
+      opt.value = item.id;
+      opt.textContent = item.title;
+      if (item.id === cleanVer) {
+        opt.selected = true;
+      }
+      launchVersionSelect.appendChild(opt);
+    });
+
+    launchVersionSelect.value = cleanVer;
+
+    // Update indicator tag
+    if (lastPlayedIndicator) {
+      lastPlayedIndicator.textContent = `Remembered: ${cleanVer}`;
     }
+
+    // Save everywhere (config file and local storage)
+    launcherConfig.activeVersion = cleanVer;
+    launcherConfig.lastPlayedVersion = cleanVer;
+    try {
+      localStorage.setItem('nexux_last_played_version', cleanVer);
+    } catch (e) {}
+    await api.saveConfig(launcherConfig);
   }
 
-  // Restore and remember last played version automatically
-  const activeVer = launcherConfig.lastPlayedVersion || launcherConfig.activeVersion || '1.21.1';
-  launcherConfig.activeVersion = activeVer;
-  launcherConfig.lastPlayedVersion = activeVer;
-  selectVersionInDropdown(activeVer);
+  // Restore and remember version on startup
+  await syncAndSelectVersion();
 
   // When user changes dropdown, remember it immediately
   launchVersionSelect?.addEventListener('change', async (e) => {
     const chosen = e.target.value;
-    launcherConfig.activeVersion = chosen;
-    launcherConfig.lastPlayedVersion = chosen;
-    await api.saveConfig(launcherConfig);
-    showToast(`Selected Minecraft ${chosen}`);
+    await syncAndSelectVersion(chosen);
+    showToast(`Active version set to Minecraft ${chosen}`);
   });
 
   // ─── RAM Slider Updates ─────────────────────────────────
@@ -435,9 +494,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const vid = btn.getAttribute('data-vid');
     launcherConfig.activeVersion = vid;
     launcherConfig.lastPlayedVersion = vid;
+    try {
+      localStorage.setItem('nexux_last_played_version', vid);
+    } catch (err) {}
     await api.saveConfig(launcherConfig);
 
-    selectVersionInDropdown(vid);
+    await syncAndSelectVersion(vid);
     loadMojangVersions();
     showToast(`Active version set to Minecraft ${vid}`);
   });
@@ -616,6 +678,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const versionToPlay = launchVersionSelect ? launchVersionSelect.value : launcherConfig.activeVersion;
     launcherConfig.activeVersion = versionToPlay;
     launcherConfig.lastPlayedVersion = versionToPlay;
+    try {
+      localStorage.setItem('nexux_last_played_version', versionToPlay);
+    } catch (e) {}
     await api.saveConfig(launcherConfig);
 
     isGameLaunching = true;
@@ -745,6 +810,207 @@ document.addEventListener('DOMContentLoaded', async () => {
     return String(num);
   }
 
+  // ─── Dynamic Interactive Background Animation (Cyber & Minecraft Fun) ──
+  function initDynamicBackground() {
+    const canvas = document.getElementById('bgFunCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let width = (canvas.width = canvas.parentElement ? canvas.parentElement.clientWidth : window.innerWidth);
+    let height = (canvas.height = canvas.parentElement ? canvas.parentElement.clientHeight : window.innerHeight);
+
+    window.addEventListener('resize', () => {
+      if (!canvas.parentElement) return;
+      width = canvas.width = canvas.parentElement.clientWidth;
+      height = canvas.height = canvas.parentElement.clientHeight;
+    });
+
+    const themeColors = {
+      cyber_neon: { main: '0, 240, 255', alt: '0, 119, 255' },
+      matrix_emerald: { main: '16, 185, 129', alt: '52, 211, 153' },
+      crimson_blood: { main: '239, 68, 68', alt: '244, 63, 94' },
+      synth_violet: { main: '168, 85, 247', alt: '236, 72, 153' },
+      pure_obsidian: { main: '148, 163, 184', alt: '56, 189, 248' },
+    };
+
+    function getActiveColors() {
+      const th = launcherConfig.theme || 'cyber_neon';
+      return themeColors[th] || themeColors.cyber_neon;
+    }
+
+    // 1. Floating Pixel Cubes & Minecraft Embers
+    const PARTICLE_COUNT = 45;
+    const particles = [];
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      particles.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        size: Math.floor(Math.random() * 5) + 3,
+        vy: -(Math.random() * 0.5 + 0.3),
+        vx: (Math.random() - 0.5) * 0.3,
+        alpha: Math.random() * 0.5 + 0.2,
+        phase: Math.random() * Math.PI * 2,
+        isAlt: Math.random() > 0.65,
+        rotSpeed: (Math.random() - 0.5) * 0.02,
+      });
+    }
+
+    // 2. Interactive Sparks on Click (Burst particles)
+    const bursts = [];
+
+    window.addEventListener('pointerdown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+      if (clickX < 0 || clickX > width || clickY < 0 || clickY > height) return;
+
+      const colors = getActiveColors();
+      for (let i = 0; i < 14; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 3.5 + 1.2;
+        bursts.push({
+          x: clickX,
+          y: clickY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size: Math.floor(Math.random() * 4) + 3,
+          color: Math.random() > 0.5 ? colors.main : colors.alt,
+          alpha: 1.0,
+          decay: Math.random() * 0.03 + 0.02,
+        });
+      }
+    });
+
+    // 3. Mouse position for subtle ambient repulsion
+    let mouse = { x: -9999, y: -9999 };
+    window.addEventListener('pointermove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = e.clientX - rect.left;
+      mouse.y = e.clientY - rect.top;
+    });
+
+    window.addEventListener('pointerleave', () => {
+      mouse.x = -9999;
+      mouse.y = -9999;
+    });
+
+    // 4. Animation Loop
+    let gridOffset = 0;
+    let animId = null;
+
+    function renderLoop() {
+      ctx.clearRect(0, 0, width, height);
+      const colors = getActiveColors();
+
+      // Draw subtle scrolling perspective cyber-grid at bottom
+      const gridY = height * 0.72;
+      const gridH = height - gridY;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, gridY, width, gridH);
+      ctx.clip();
+
+      gridOffset = (gridOffset + 0.35) % 36;
+      ctx.strokeStyle = `rgba(${colors.main}, 0.07)`;
+      ctx.lineWidth = 1;
+
+      // Horizontal perspective lines
+      for (let y = gridY + gridOffset; y < height; y += 22) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+
+      // Vertical converging perspective lines
+      const cx = width / 2;
+      const horizonY = gridY - 60;
+      for (let x = -width * 0.5; x <= width * 1.5; x += 60) {
+        ctx.beginPath();
+        ctx.moveTo(cx, horizonY);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Render & Update Floating Minecraft Pixel Cubes
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.phase += 0.02;
+        p.y += p.vy;
+        p.x += p.vx + Math.sin(p.phase) * 0.25;
+
+        // Mouse repulsion
+        const dx = p.x - mouse.x;
+        const dy = p.y - mouse.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 80) {
+          const force = (80 - dist) / 80;
+          p.x += (dx / dist) * force * 2.5;
+          p.y += (dy / dist) * force * 2.5;
+        }
+
+        // Wrap around top to bottom
+        if (p.y < -10) {
+          p.y = height + 10;
+          p.x = Math.random() * width;
+        }
+        if (p.x < -10) p.x = width + 10;
+        if (p.x > width + 10) p.x = -10;
+
+        const pColor = p.isAlt ? colors.alt : colors.main;
+        const currentAlpha = p.alpha * (0.6 + 0.4 * Math.sin(p.phase));
+
+        // Draw crisp pixel cube with subtle glow
+        ctx.save();
+        ctx.translate(Math.round(p.x), Math.round(p.y));
+        ctx.fillStyle = `rgba(${pColor}, ${currentAlpha.toFixed(2)})`;
+        ctx.shadowColor = `rgba(${pColor}, 0.6)`;
+        ctx.shadowBlur = 6;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+        ctx.restore();
+      }
+
+      // Render & Update Interactive Click Bursts
+      for (let i = bursts.length - 1; i >= 0; i--) {
+        const b = bursts[i];
+        b.x += b.vx;
+        b.y += b.vy;
+        b.vy += 0.08;
+        b.alpha -= b.decay;
+
+        if (b.alpha <= 0) {
+          bursts.splice(i, 1);
+          continue;
+        }
+
+        ctx.save();
+        ctx.fillStyle = `rgba(${b.color}, ${b.alpha.toFixed(2)})`;
+        ctx.shadowColor = `rgba(${b.color}, 0.8)`;
+        ctx.shadowBlur = 8;
+        ctx.fillRect(Math.round(b.x), Math.round(b.y), b.size, b.size);
+        ctx.restore();
+      }
+
+      animId = requestAnimationFrame(renderLoop);
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        if (animId) cancelAnimationFrame(animId);
+      } else {
+        animId = requestAnimationFrame(renderLoop);
+      }
+    });
+
+    animId = requestAnimationFrame(renderLoop);
+  }
+
+  // Start animated background
+  initDynamicBackground();
+
   function mockApi() {
     return {
       minimize: () => {},
@@ -754,6 +1020,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       saveConfig: async (cfg) => cfg,
       detectJava: async () => 'javaw',
       getMcVersions: async () => ({ versions: [] }),
+      getInstalledVersions: async () => ['1.21.1', '26.3'],
       searchMods: async () => [],
       installMod: async () => ({ success: true, filename: 'test.jar' }),
       listInstalledMods: async () => [],
